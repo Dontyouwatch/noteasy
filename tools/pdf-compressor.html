@@ -3,23 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>PDF Size Compressor</title>
-    <style>
-        .upload-area { border: 2px dashed #007bff; border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; background-color: #f8f9fa; transition: background-color 0.3s; }
-        .upload-area:hover { background-color: #e9ecef; }
-        .upload-area p { margin: 0; font-size: 18px; font-weight: 500; color: #007bff; }
-        #pdf-input { display: none; }
-        #file-info { text-align: center; margin-top: 20px; font-weight: 500; color: #555; }
-        .compression-controls { margin-top: 30px; opacity: 0; visibility: hidden; max-height: 0; transition: opacity 0.5s, max-height 0.5s, margin-top 0.5s; }
-        .compression-controls.visible { opacity: 1; visibility: visible; max-height: 500px; }
-        .slider-container { margin-bottom: 20px; }
-        .slider-container label { display: block; font-weight: bold; margin-bottom: 10px; }
-        #compression-slider { width: 100%; cursor: pointer; }
-        #slider-value { text-align: center; font-weight: bold; color: #007bff; margin-top: 5px; font-size: 1.1em; }
-        #compress-button { display: block; width: 100%; padding: 15px; font-size: 18px; background-color: #28a745; }
-        .result-area { margin-top: 25px; text-align: center; padding: 15px; background-color: #eaf6ff; border: 1px solid #bce8f1; border-radius: 5px; display: none; }
-        #download-button { display: inline-block; margin-top: 15px; text-decoration: none; }
-        #status { text-align: center; margin-top: 20px; font-weight: 500; color: #dc3545; }
-    </style>
 </head>
 <body>
 
@@ -28,12 +11,12 @@
     <label for="pdf-input" class="upload-area" id="upload-label">
         <p>Click to Select a PDF File</p>
     </label>
-    <input type="file" id="pdf-input" accept=".pdf">
+    <input type="file" id="pdf-input" accept=".pdf" style="display: none;">
 
-    <div id="file-info"></div>
-    <div id="status"></div>
+    <div id="file-info" style="text-align: center;"></div>
+    <div id="status" style="text-align: center;"></div>
 
-    <div class="compression-controls" id="controls">
+    <div class="compression-controls" style="visibility: hidden; opacity: 0;">
         <div class="slider-container">
             <label for="compression-slider">Compression Level</label>
             <input type="range" id="compression-slider" min="10" max="80" value="50" step="10">
@@ -42,9 +25,9 @@
         <button id="compress-button">Compress PDF</button>
     </div>
 
-    <div class="result-area" id="result-area">
+    <div class="result-area">
         <p id="result-text"></p>
-        <a id="download-button" href="#" download="compressed.pdf" class="custom-file-upload">Download Compressed PDF</a>
+        <a id="download-button" href="#" download="compressed.pdf">Download Compressed PDF</a>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
@@ -53,15 +36,18 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
         const pdfInput = document.getElementById('pdf-input');
         const uploadLabel = document.getElementById('upload-label');
-        const controls = document.getElementById('controls');
-        
+        const controls = document.querySelector('.compression-controls');
+        let pdfFile = null;
+
         uploadLabel.addEventListener('click', () => pdfInput.click());
 
         pdfInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file && file.type === 'application/pdf') {
+                pdfFile = file;
                 document.getElementById('file-info').textContent = `File: ${file.name}`;
-                controls.classList.add('visible');
+                controls.style.visibility = 'visible';
+                controls.style.opacity = '1';
             }
         });
 
