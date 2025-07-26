@@ -10,7 +10,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             background-color: #f0f2f5; 
             margin: 0; 
-            padding-top: 80px;
+            padding-top: 80px; /* Offset for fixed navbar */
         }
         .container { 
             max-width: 900px; 
@@ -38,36 +38,6 @@
         .tool-card p { color: #555; line-height: 1.5; min-height: 70px; flex-grow: 1; }
         .tool-card a { display: inline-block; text-decoration: none; background-color: #007bff; color: #fff; padding: 12px 25px; border-radius: 5px; font-weight: bold; }
         
-        /* --- General Form Element Styles (Good for all tools) --- */
-        input[type="text"], textarea {
-            flex-grow: 1;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        button, .custom-file-upload {
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: bold;
-            color: #fff;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: center;
-            transition: background-color 0.2s;
-        }
-        button:hover, .custom-file-upload:hover {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #aaa;
-            cursor: not-allowed;
-        }
-
         /* --- Footer Styles --- */
         footer { text-align: center; padding: 20px; color: #777; margin-top: 40px; }
     </style>
