@@ -37,9 +37,16 @@
         #convert-button { width: 100%; padding: 15px; font-size: 18px; color: #fff; background-color: #28a745; margin-top: 20px; }
         #convert-button:disabled { background-color: #aaa; cursor: not-allowed; }
 
-        /* --- TOOL: PDF Compressor --- */
-        .upload-area { border: 2px dashed #007bff; padding: 40px 20px; background-color: #f8f9fa; }
-        .upload-area p { margin: 0; font-size: 18px; color: #007bff; }
+        /* --- TOOL: PDF Compressor (CORRECTED STYLES) --- */
+        .upload-area { border: 2px dashed #007bff; padding: 40px 20px; background-color: #f8f9fa; text-align: center; cursor: pointer; }
+        .upload-area:hover { background-color: #e9ecef; }
+        .upload-area p, .upload-area a { /* This is the fix */
+            margin: 0; 
+            font-size: 18px; 
+            font-weight: 500; 
+            color: #007bff;
+            text-decoration: none;
+        }
         #file-info { margin-top: 20px; }
         .compression-controls { margin-top: 30px; }
         #compression-slider { width: 100%; }
