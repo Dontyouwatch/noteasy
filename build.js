@@ -27,7 +27,10 @@ async function build() {
             if (file.endsWith('.html')) {
                 const fileContent = await fs.readFile(path.join(toolsDir, file), 'utf-8');
                 const titleMatch = fileContent.match(/<title>(.*?)<\/title>/);
-                const title = titleMatch ? titleMatch : 'Unnamed Tool';
+                
+                // --- FIX: Correctly get the title text (group 1) ---
+                const title = titleMatch ? titleMatch[1] : 'Unnamed Tool';
+                
                 const description = `Click here to use this simple, free, and browser-based tool.`;
                 toolCardsHtml += `<div class="tool-card"><h2>${title}</h2><p>${description}</p><a href="/tools/${file}">Use Tool</a></div>`;
             }
@@ -35,7 +38,7 @@ async function build() {
         
         const indexTemplate = await fs.readFile(templatePath, 'utf-8');
         const indexContent = indexTemplate.replace('<!-- TOOL_GRID_PLACEHOLDER -->', toolCardsHtml);
-        const indexHeader = header.replace('<!-- PAGE_TITLE -->', 'ToolHub - Free Online Tools').replace('<!-- TOOL_SPECIFIC_STYLES -->', ''); // No specific styles for homepage
+        const indexHeader = header.replace('<!-- PAGE_TITLE -->', 'ToolHub - Free Online Tools').replace('<!-- TOOL_SPECIFIC_STYLES -->', '');
         const finalIndexHtml = indexHeader + indexContent + footer;
         await fs.writeFile(path.join(distDir, 'index.html'), finalIndexHtml);
         console.log('Successfully built index.html');
@@ -56,9 +59,10 @@ async function build() {
                     continue;
                 }
                 
-                const title = titleMatch;
-                const toolStyles = styleMatch ? styleMatch : ''; // Get styles, or empty string if none
-                const bodyContent = bodyMatch;
+                // --- FIX: Correctly get the captured group [1] from each match ---
+                const title = titleMatch[1];
+                const toolStyles = styleMatch ? styleMatch[1] : '';
+                const bodyContent = bodyMatch[1];
                 
                 // Create a custom header, replacing BOTH title and the new styles placeholder
                 const toolHeader = header
