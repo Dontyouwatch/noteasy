@@ -1,0 +1,11 @@
+{
+  "name": "my-tools-site",
+  "version": "1.0.0",
+  "description": "A collection of online tools.",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "fs-extra": "^10.0.0"
+  }
+}
