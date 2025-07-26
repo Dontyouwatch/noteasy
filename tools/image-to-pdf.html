@@ -3,30 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>Images to PDF Converter</title>
-    <style>
-        .controls { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; }
-        .file-input-wrapper { display: flex; gap: 10px; flex-wrap: wrap; }
-        .custom-file-upload { background-color: #1a73e8; color: white; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; text-align: center; }
-        input[type="file"] { display: none; }
-        #image-preview { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; padding: 10px; border: 1px dashed #ccc; border-radius: 5px; min-height: 170px; background-color: #fafafa; }
-        .preview-card { position: relative; width: 100%; padding-top: 100%; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .preview-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-        #convert-button { width: 100%; padding: 15px; font-size: 18px; color: #fff; background-color: #28a745; }
-    </style>
 </head>
 <body>
 
     <h1>Images to PDF Converter</h1>
 
-    <div class="controls">
-        <div class="file-input-wrapper">
-            <label for="image-input" class="custom-file-upload">Select Images</label>
-            <input type="file" id="image-input" accept="image/*" multiple>
+    <div class="file-input-wrapper" style="margin-bottom: 20px;">
+        <label for="image-input" class="custom-file-upload">Select Images</label>
+        <input type="file" id="image-input" accept="image/*" multiple>
 
-            <label for="add-more-images" class="custom-file-upload">Add More Images</label>
-            <input type="file" id="add-more-images" accept="image/*" multiple>
-        </div>
-        
+        <label for="add-more-images" class="custom-file-upload">Add More Images</label>
+        <input type="file" id="add-more-images" accept="image/*" multiple>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
         <input type="text" id="pdf-name" placeholder="Enter custom PDF name (e.g., my-report)">
     </div>
 
