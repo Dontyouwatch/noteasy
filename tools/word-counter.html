@@ -1,125 +1,42 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word Counter</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #1a73e8;
-            margin-bottom: 10px;
-        }
-        p {
-            text-align: center;
-            color: #555;
-            margin-bottom: 30px;
-        }
-        textarea {
-            width: 100%;
-            height: 250px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-            line-height: 1.6;
-            resize: vertical;
-            box-sizing: border-box;
-        }
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 20px;
-            margin-top: 25px;
-            text-align: center;
-        }
-        .stat-card {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-        .stat-card h3 {
-            margin: 0 0 10px 0;
-            font-size: 1em;
-            color: #555;
-        }
-        .stat-card span {
-            font-size: 2em;
-            font-weight: bold;
-            color: #1a73e8;
-        }
-    </style>
-</head>
-<body>
+<h1>Word Counter</h1>
+<p>Paste your text below to get an instant analysis of your content.</p>
 
-    <div class="container">
-        <h1>Word Counter</h1>
-        <p>Paste your text below to get an instant analysis of your content.</p>
+<textarea id="text-input" placeholder="Start typing or paste your text here..."></textarea>
 
-        <textarea id="text-input" placeholder="Start typing or paste your text here..."></textarea>
-
-        <div class="stats-container">
-            <div class="stat-card">
-                <h3>Words</h3>
-                <span id="word-count">0</span>
-            </div>
-            <div class="stat-card">
-                <h3>Characters</h3>
-                <span id="char-count">0</span>
-            </div>
-            <div class="stat-card">
-                <h3>Sentences</h3>
-                <span id="sentence-count">0</span>
-            </div>
-            <div class="stat-card">
-                <h3>Paragraphs</h3>
-                <span id="paragraph-count">0</span>
-            </div>
-        </div>
+<div class="stats-container">
+    <div class="stat-card">
+        <h3>Words</h3>
+        <span id="word-count">0</span>
     </div>
+    <div class="stat-card">
+        <h3>Characters</h3>
+        <span id="char-count">0</span>
+    </div>
+    <div class="stat-card">
+        <h3>Sentences</h3>
+        <span id="sentence-count">0</span>
+    </div>
+    <div class="stat-card">
+        <h3>Paragraphs</h3>
+        <span id="paragraph-count">0</span>
+    </div>
+</div>
 
-    <script>
-        const textInput = document.getElementById('text-input');
-        const wordCountEl = document.getElementById('word-count');
-        const charCountEl = document.getElementById('char-count');
-        const sentenceCountEl = document.getElementById('sentence-count');
-        const paragraphCountEl = document.getElementById('paragraph-count');
+<script>
+    const textInput = document.getElementById('text-input');
+    const wordCountEl = document.getElementById('word-count');
+    const charCountEl = document.getElementById('char-count');
+    const sentenceCountEl = document.getElementById('sentence-count');
+    const paragraphCountEl = document.getElementById('paragraph-count');
 
-        textInput.addEventListener('input', () => {
-            const text = textInput.value;
-
-            // Calculate Words
-            const words = text.trim().split(/\s+/).filter(word => word.length > 0);
-            wordCountEl.textContent = words.length;
-
-            // Calculate Characters
-            charCountEl.textContent = text.length;
-
-            // Calculate Sentences (simple check for '.', '!', '?')
-            const sentences = text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
-            sentenceCountEl.textContent = sentences.length;
-
-            // Calculate Paragraphs (split by new lines)
-            const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-            paragraphCountEl.textContent = paragraphs.length;
-        });
-    </script>
-
-</body>
-</html>
+    textInput.addEventListener('input', () => {
+        const text = textInput.value;
+        const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+        wordCountEl.textContent = words.length;
+        charCountEl.textContent = text.length;
+        const sentences = text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
+        sentenceCountEl.textContent = sentences.length;
+        const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+        paragraphCountEl.textContent = paragraphs.length;
+    });
+</script>
