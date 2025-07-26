@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Online Tools</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f0f2f5; 
+            margin: 0; 
+            padding: 20px;
+        }
+        .container { 
+            max-width: 900px; 
+            margin: 20px auto; 
+            padding: 20px;
+        }
+        h1 { 
+            text-align: center; 
+            color: #333;
+        }
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+        .tool-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+        }
+        .tool-card h2 { 
+            margin-top: 0; 
+            font-size: 1.4em; 
+            color: #0056b3;
+        }
+        .tool-card p {
+            color: #555;
+            line-height: 1.5;
+            min-height: 70px;
+        }
+        .tool-card a {
+            display: inline-block;
+            text-decoration: none;
+            background-color: #007bff;
+            color: #fff;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .tool-card a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Our Free Online Tools</h1>
+
+        <div class="tool-grid">
+            <!-- Tool 1: Images to PDF -->
+            <div class="tool-card">
+                <h2>Images to PDF Converter</h2>
+                <p>Merge multiple JPG, PNG, or other images into a single, easy-to-share PDF file. Quick and entirely client-side.</p>
+                <a href="/tools/image-to-pdf.html">Use Tool</a>
+            </div>
+
+            <!-- Tool 2: PDF Compressor -->
+            <div class="tool-card">
+                <h2>PDF Size Compressor</h2>
+                <p>Reduce the file size of your PDF documents. Use the slider to select a compression level and see a live preview of the new size.</p>
+                <a href="/tools/pdf-compressor.html">Use Tool</a>
+            </div>
+            
+            <!-- Add new tools here by copying a tool-card div -->
+
+        </div>
+    </div>
+
+</body>
+</html>
