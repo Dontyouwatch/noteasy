@@ -3,20 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <title>PDF Size Compressor</title>
+    <style>
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            transition: background-color 0.3s;
+        }
+        .upload-area:hover {
+            background-color: #e9ecef;
+        }
+        /* This rule specifically targets the text inside the upload area */
+        .upload-area p {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+            color: #007bff; /* Ensures the text is blue */
+            margin-bottom: 0; /* Resets the global paragraph margin */
+        }
+        #pdf-input {
+            display: none;
+        }
+        #file-info {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+        .compression-controls {
+            margin-top: 30px;
+            opacity: 0;
+            visibility: hidden;
+            max-height: 0;
+            transition: opacity 0.5s, max-height 0.5s, margin-top 0.5s;
+        }
+        .compression-controls.visible {
+            opacity: 1;
+            visibility: visible;
+            max-height: 500px;
+        }
+        .slider-container {
+            margin-bottom: 20px;
+        }
+        .slider-container label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        #compression-slider {
+            width: 100%;
+            cursor: pointer;
+        }
+        #slider-value {
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+            margin-top: 5px;
+            font-size: 1.1em;
+        }
+        #compress-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            color: #fff;
+            background-color: #28a745;
+        }
+        .result-area {
+            margin-top: 25px;
+            text-align: center;
+            padding: 15px;
+            background-color: #eaf6ff;
+            border: 1px solid #bce8f1;
+            border-radius: 5px;
+            display: none;
+        }
+        #download-button {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 25px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            text-decoration: none;
+        }
+        #status {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 500;
+            color: #dc3545;
+        }
+    </style>
 </head>
 <body>
-
     <h1>PDF Size Compressor</h1>
 
+    <!-- This is a clickable label that triggers the hidden file input -->
     <label for="pdf-input" class="upload-area" id="upload-label">
         <p>Click to Select a PDF File</p>
     </label>
-    <input type="file" id="pdf-input" accept=".pdf" style="display: none;">
+    <input type="file" id="pdf-input" accept=".pdf">
 
-    <div id="file-info" style="text-align: center;"></div>
-    <div id="status" style="text-align: center;"></div>
+    <div id="file-info"></div>
+    <div id="status"></div>
 
-    <div class="compression-controls" style="visibility: hidden; opacity: 0;">
+    <div class="compression-controls" id="controls">
         <div class="slider-container">
             <label for="compression-slider">Compression Level</label>
             <input type="range" id="compression-slider" min="10" max="80" value="50" step="10">
@@ -25,35 +118,120 @@
         <button id="compress-button">Compress PDF</button>
     </div>
 
-    <div class="result-area">
+    <div class="result-area" id="result-area">
         <p id="result-text"></p>
         <a id="download-button" href="#" download="compressed.pdf">Download Compressed PDF</a>
     </div>
 
+    <!-- External libraries required for this tool -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- JavaScript for the tool's functionality -->
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
+
         const pdfInput = document.getElementById('pdf-input');
         const uploadLabel = document.getElementById('upload-label');
-        const controls = document.querySelector('.compression-controls');
+        const fileInfo = document.getElementById('file-info');
+        const statusEl = document.getElementById('status');
+        const controls = document.getElementById('controls');
+        const slider = document.getElementById('compression-slider');
+        const sliderValue = document.getElementById('slider-value');
+        const compressButton = document.getElementById('compress-button');
+        const resultArea = document.getElementById('result-area');
+        const resultText = document.getElementById('result-text');
+        const downloadButton = document.getElementById('download-button');
         let pdfFile = null;
 
         uploadLabel.addEventListener('click', () => pdfInput.click());
 
-        pdfInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
+        pdfInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
             if (file && file.type === 'application/pdf') {
                 pdfFile = file;
-                document.getElementById('file-info').textContent = `File: ${file.name}`;
-                controls.style.visibility = 'visible';
-                controls.style.opacity = '1';
+                fileInfo.textContent = `File: ${file.name} (${formatBytes(file.size)})`;
+                statusEl.textContent = '';
+                controls.classList.add('visible');
+                resultArea.style.display = 'none';
+            } else {
+                pdfFile = null;
+                fileInfo.textContent = '';
+                controls.classList.remove('visible');
+                statusEl.textContent = 'Please select a valid PDF file.';
+            }
+        });
+        
+        slider.addEventListener('input', (event) => {
+            sliderValue.textContent = `${event.target.value}%`;
+        });
+
+        compressButton.addEventListener('click', async () => {
+            if (!pdfFile) return alert('Please select a PDF file first.');
+            
+            compressButton.disabled = true;
+            statusEl.textContent = 'Processing... This may take a moment.';
+            resultArea.style.display = 'none';
+
+            try {
+                const quality = 1 - (parseInt(slider.value) / 100);
+                const fileReader = new FileReader();
+                fileReader.onload = async function() {
+                    const typedarray = new Uint8Array(this.result);
+                    const pdfDoc = await pdfjsLib.getDocument({ data: typedarray }).promise;
+                    const { jsPDF } = window.jspdf;
+                    const newPdf = new jsPDF();
+                    
+                    for (let i = 1; i <= pdfDoc.numPages; i++) {
+                        statusEl.textContent = `Processing page ${i} of ${pdfDoc.numPages}...`;
+                        const page = await pdfDoc.getPage(i);
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        const context = canvas.getContext('2d');
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        const imgData = canvas.toDataURL('image/jpeg', quality);
+
+                        if (i > 1) newPdf.addPage();
+                        
+                        const pageWidth = newPdf.internal.pageSize.getWidth();
+                        const pageHeight = newPdf.internal.pageSize.getHeight();
+                        const ratio = viewport.width / viewport.height;
+                        let pdfImgWidth = pageWidth;
+                        let pdfImgHeight = pdfImgWidth / ratio;
+                        if (pdfImgHeight > pageHeight) {
+                            pdfImgHeight = pageHeight;
+                            pdfImgWidth = pdfImgHeight * ratio;
+                        }
+                        const x = (pageWidth - pdfImgWidth) / 2;
+                        const y = (pageHeight - pdfImgHeight) / 2;
+                        newPdf.addImage(imgData, 'JPEG', x, y, pdfImgWidth, pdfImgHeight);
+                    }
+                    
+                    const pdfBlob = newPdf.output('blob');
+                    resultText.innerHTML = `Original Size: <b>${formatBytes(pdfFile.size)}</b><br>New Size: <b>${formatBytes(pdfBlob.size)}</b>`;
+                    downloadButton.href = URL.createObjectURL(pdfBlob);
+                    downloadButton.download = `compressed-${pdfFile.name}`;
+                    resultArea.style.display = 'block';
+                    statusEl.textContent = 'Compression complete!';
+                };
+                fileReader.readAsArrayBuffer(pdfFile);
+            } catch (error) {
+                statusEl.textContent = 'An error occurred during compression.';
+            } finally {
+                compressButton.disabled = false;
             }
         });
 
-        document.getElementById('compression-slider').addEventListener('input', (e) => {
-            document.getElementById('slider-value').textContent = `${e.target.value}%`;
-        });
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
     </script>
 </body>
 </html>
