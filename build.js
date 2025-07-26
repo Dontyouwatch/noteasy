@@ -27,7 +27,7 @@ async function build() {
             if (file.endsWith('.html')) {
                 const fileContent = await fs.readFile(path.join(toolsDir, file), 'utf-8');
                 const titleMatch = fileContent.match(/<title>(.*?)<\/title>/);
-                const title = titleMatch ? titleMatch[1] : 'Unnamed Tool';
+                const title = titleMatch ? titleMatch : 'Unnamed Tool';
                 const description = `Click here to use this simple, free, and browser-based tool.`;
                 toolCardsHtml += `<div class="tool-card"><h2>${title}</h2><p>${description}</p><a href="/tools/${file}">Use Tool</a></div>`;
             }
@@ -56,9 +56,9 @@ async function build() {
                     continue;
                 }
                 
-                const title = titleMatch[1];
-                const toolStyles = styleMatch ? styleMatch[1] : ''; // Get styles, or empty string if none
-                const bodyContent = bodyMatch[1];
+                const title = titleMatch;
+                const toolStyles = styleMatch ? styleMatch : ''; // Get styles, or empty string if none
+                const bodyContent = bodyMatch;
                 
                 // Create a custom header, replacing BOTH title and the new styles placeholder
                 const toolHeader = header
@@ -82,48 +82,4 @@ async function build() {
     }
 }
 
-build();```
-
-### Step 3: How to Add a New Tool Now (The New Workflow)
-
-This is the best part. From now on, your process for adding a tool is incredibly simple.
-
-Let's say you want to add a "Text to Slug" converter.
-
-1.  Create a new file: `/tools/text-to-slug.html`.
-2.  Format it like a standalone HTML document. The build script will read from it like a template.
-
-    ```html
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>Text to Slug Converter</title>
-        <style>
-            /* Add any styles SPECIFIC to this tool here */
-            #slug-output {
-                background-color: #e9ecef;
-                padding: 10px;
-                border-radius: 5px;
-                font-family: monospace;
-                margin-top: 20px;
-            }
-        </style>
-    </head>
-    <body>
-        <!-- The HTML content for your tool goes here -->
-        <h1>Text to Slug Converter</h1>
-        <input type="text" id="slug-input" placeholder="Enter text here...">
-        <div id="slug-output">your-slug-will-appear-here</div>
-
-        <!-- The JavaScript for your tool goes here -->
-        <script>
-            // ... your javascript logic ...
-        </script>
-    </body>
-    </html>
-    ```
-
-3.  Commit and push your new file.
-
-That's it. The build script will automatically extract the title (`Text to Slug Converter`), the specific styles (`#slug-output`), and the body content, and it will build the final page correctly, wrapped in the shared header and footer. You never have to touch the central CSS file again.
+build();
