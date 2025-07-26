@@ -8,15 +8,15 @@ const templatePath = path.join(__dirname, 'index.template.html');
 
 async function build() {
     try {
-        // 1. Prepare output directory
+        // 1. Prepare output directory (where the final site goes)
         await fs.emptyDir(distDir);
         await fs.copy(toolsDir, path.join(distDir, 'tools'));
 
-        // 2. Read the reusable header and footer
+        // 2. Read the reusable parts
         const header = await fs.readFile(path.join(partialsDir, 'header.html'), 'utf-8');
         const footer = await fs.readFile(path.join(partialsDir, 'footer.html'), 'utf-8');
 
-        // 3. Generate the list of tool cards
+        // 3. Generate the tool cards AUTOMATICALLY by scanning the folder
         const toolFiles = await fs.readdir(toolsDir);
         let toolCardsHtml = '';
 
@@ -26,7 +26,7 @@ async function build() {
                 const fileContent = await fs.readFile(filePath, 'utf-8');
                 const titleMatch = fileContent.match(/<title>(.*?)<\/title>/);
                 const title = titleMatch ? titleMatch[1] : 'Unnamed Tool';
-                const description = `A simple, free, and browser-based tool to help you with your files.`;
+                const description = `Click here to use this simple, free, and browser-based tool.`;
 
                 toolCardsHtml += `
                     <div class="tool-card">
@@ -38,11 +38,11 @@ async function build() {
             }
         }
 
-        // 4. Read the main page content and inject the tool cards
+        // 4. Read the landing page content and inject the generated tool cards
         const pageContentTemplate = await fs.readFile(templatePath, 'utf-8');
         const pageContent = pageContentTemplate.replace('<!-- TOOL_GRID_PLACEHOLDER -->', toolCardsHtml);
 
-        // 5. Assemble the final index.html from all parts
+        // 5. Assemble the final index.html (Header + Page Content + Footer)
         const finalHtml = header + pageContent + footer;
         await fs.writeFile(path.join(distDir, 'index.html'), finalHtml);
 
