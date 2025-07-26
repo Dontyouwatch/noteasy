@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 
+// --- Define file paths ---
 const toolsDir = path.join(__dirname, 'tools');
 const distDir = path.join(__dirname, 'dist');
 const partialsDir = path.join(__dirname, 'partials');
@@ -8,22 +9,25 @@ const templatePath = path.join(__dirname, 'index.template.html');
 
 async function build() {
     try {
-        // 1. Prepare output directory (where the final site goes)
+        console.log('Starting build...');
+
+        // 1. Prepare output directory
         await fs.emptyDir(distDir);
-        await fs.copy(toolsDir, path.join(distDir, 'tools'));
+        await fs.ensureDir(path.join(distDir, 'tools')); // Ensure the /dist/tools folder exists
 
         // 2. Read the reusable parts
         const header = await fs.readFile(path.join(partialsDir, 'header.html'), 'utf-8');
         const footer = await fs.readFile(path.join(partialsDir, 'footer.html'), 'utf-8');
+        
+        // --- PART 1: BUILD THE LANDING PAGE ---
 
-        // 3. Generate the tool cards AUTOMATICALLY by scanning the folder
+        // Generate tool cards for the landing page
         const toolFiles = await fs.readdir(toolsDir);
         let toolCardsHtml = '';
 
         for (const file of toolFiles) {
             if (file.endsWith('.html')) {
-                const filePath = path.join(toolsDir, file);
-                const fileContent = await fs.readFile(filePath, 'utf-8');
+                const fileContent = await fs.readFile(path.join(toolsDir, file), 'utf-8');
                 const titleMatch = fileContent.match(/<title>(.*?)<\/title>/);
                 const title = titleMatch ? titleMatch[1] : 'Unnamed Tool';
                 const description = `Click here to use this simple, free, and browser-based tool.`;
@@ -37,16 +41,48 @@ async function build() {
                 `;
             }
         }
+        
+        // Assemble the final index.html
+        const indexTemplate = await fs.readFile(templatePath, 'utf-8');
+        const indexContent = indexTemplate.replace('<!-- TOOL_GRID_PLACEHOLDER -->', toolCardsHtml);
+        const indexHeader = header.replace('<!-- PAGE_TITLE -->', 'ToolHub - Free Online Tools');
+        const finalIndexHtml = indexHeader + indexContent + footer;
+        await fs.writeFile(path.join(distDir, 'index.html'), finalIndexHtml);
+        console.log('Successfully built index.html');
 
-        // 4. Read the landing page content and inject the generated tool cards
-        const pageContentTemplate = await fs.readFile(templatePath, 'utf-8');
-        const pageContent = pageContentTemplate.replace('<!-- TOOL_GRID_PLACEHOLDER -->', toolCardsHtml);
 
-        // 5. Assemble the final index.html (Header + Page Content + Footer)
-        const finalHtml = header + pageContent + footer;
-        await fs.writeFile(path.join(distDir, 'index.html'), finalHtml);
+        // --- PART 2: BUILD EVERY INDIVIDUAL TOOL PAGE ---
+        
+        for (const file of toolFiles) {
+             if (file.endsWith('.html')) {
+                const toolPath = path.join(toolsDir, file);
+                const toolPageContent = await fs.readFile(toolPath, 'utf-8');
+                
+                // Extract the title and body content from the original tool file
+                const titleMatch = toolPageContent.match(/<title>(.*?)<\/title>/);
+                const bodyMatch = toolPageContent.match(/<body[^>]*>([\s\S]*)<\/body>/);
 
-        console.log('Build successful! Site assembled in /dist folder.');
+                if (!titleMatch || !bodyMatch) {
+                    console.warn(`Could not parse title or body from ${file}. Skipping.`);
+                    continue;
+                }
+                
+                const title = titleMatch[1];
+                const bodyContent = bodyMatch[1];
+                
+                // Create a custom header for this tool with the correct title
+                const toolHeader = header.replace('<!-- PAGE_TITLE -->', `${title} - ToolHub`);
+                
+                // Assemble the final tool page
+                const finalToolHtml = toolHeader + bodyContent + footer;
+                
+                // Write the newly built tool page to the /dist/tools/ directory
+                await fs.writeFile(path.join(distDir, 'tools', file), finalToolHtml);
+                console.log(`Successfully built ${file}`);
+             }
+        }
+
+        console.log('Build successful!');
 
     } catch (error) {
         console.error('Build failed:', error);
