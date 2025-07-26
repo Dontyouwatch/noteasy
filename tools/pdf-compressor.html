@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Size Compressor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            transition: background-color 0.3s;
+        }
+        
+        .upload-area:hover {
+            background-color: #e9ecef;
+        }
+
+        .upload-area p {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+            color: #007bff;
+        }
+
+        #pdf-input {
+            display: none;
+        }
+
+        #file-info {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .compression-controls {
+            margin-top: 30px;
+            opacity: 0;
+            visibility: hidden;
+            max-height: 0;
+            transition: opacity 0.5s, max-height 0.5s, margin-top 0.5s;
+        }
+
+        .compression-controls.visible {
+            opacity: 1;
+            visibility: visible;
+            max-height: 500px;
+        }
+
+        .slider-container {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #compression-slider {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        #slider-value {
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+            margin-top: 5px;
+            font-size: 1.1em;
+        }
+        
+        #compress-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #28a745;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #compress-button:hover {
+            background-color: #218838;
+        }
+
+        #compress-button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+
+        .result-area {
+            margin-top: 25px;
+            text-align: center;
+            padding: 15px;
+            background-color: #eaf6ff;
+            border: 1px solid #bce8f1;
+            border-radius: 5px;
+            display: none;
+        }
+
+        #download-button {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        #download-button:hover {
+            background-color: #0056b3;
+        }
+        
+        #status {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 500;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>PDF Size Compressor</h1>
+
+        <label for="pdf-input" class="upload-area" id="upload-label">
+            <p>Click to Select a PDF File</p>
+        </label>
+        <input type="file" id="pdf-input" accept=".pdf">
+
+        <div id="file-info"></div>
+        <div id="status"></div>
+
+        <div class="compression-controls" id="controls">
+            <div class="slider-container">
+                <label for="compression-slider">Compression Level</label>
+                <input type="range" id="compression-slider" min="10" max="80" value="50" step="10">
+                <div id="slider-value">50%</div>
+            </div>
+
+            <button id="compress-button">Compress PDF</button>
+        </div>
+
+        <div class="result-area" id="result-area">
+            <p id="result-text"></p>
+            <a id="download-button" href="#" download="compressed.pdf">Download Compressed PDF</a>
+        </div>
+    </div>
+
+    <!-- Required Libraries: pdf.js for reading/rendering and jsPDF for creating the new file -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        // Set worker source for pdf.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
+
+        const pdfInput = document.getElementById('pdf-input');
+        const uploadLabel = document.getElementById('upload-label');
+        const fileInfo = document.getElementById('file-info');
+        const statusEl = document.getElementById('status');
+        const controls = document.getElementById('controls');
+        const slider = document.getElementById('compression-slider');
+        const sliderValue = document.getElementById('slider-value');
+        const compressButton = document.getElementById('compress-button');
+        const resultArea = document.getElementById('result-area');
+        const resultText = document.getElementById('result-text');
+        const downloadButton = document.getElementById('download-button');
+
+        let pdfFile = null;
+
+        // Open file dialog when upload area is clicked
+        uploadLabel.addEventListener('click', () => pdfInput.click());
+
+        // Handle file selection
+        pdfInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                pdfFile = file;
+                fileInfo.textContent = `File: ${file.name} (${formatBytes(file.size)})`;
+                statusEl.textContent = '';
+                controls.classList.add('visible');
+                resultArea.style.display = 'none';
+            } else {
+                pdfFile = null;
+                fileInfo.textContent = '';
+                controls.classList.remove('visible');
+                statusEl.textContent = 'Please select a valid PDF file.';
+            }
+        });
+
+        // Update slider value display
+        slider.addEventListener('input', (event) => {
+            sliderValue.textContent = `${event.target.value}%`;
+        });
+
+        // Main compression logic on button click
+        compressButton.addEventListener('click', async () => {
+            if (!pdfFile) {
+                alert('Please select a PDF file first.');
+                return;
+            }
+
+            compressButton.disabled = true;
+            statusEl.textContent = 'Processing... This may take a moment.';
+            resultArea.style.display = 'none';
+
+            try {
+                const quality = 1 - (parseInt(slider.value) / 100);
+                const fileReader = new FileReader();
+
+                fileReader.onload = async function() {
+                    const typedarray = new Uint8Array(this.result);
+                    const pdfDoc = await pdfjsLib.getDocument({ data: typedarray }).promise;
+                    const { jsPDF } = window.jspdf;
+                    const newPdf = new jsPDF();
+                    
+                    statusEl.textContent = `Processing page 1 of ${pdfDoc.numPages}...`;
+
+                    for (let i = 1; i <= pdfDoc.numPages; i++) {
+                        const page = await pdfDoc.getPage(i);
+                        const viewport = page.getViewport({ scale: 1.5 }); // Use a higher scale for better quality
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        
+                        const imgData = canvas.toDataURL('image/jpeg', quality);
+
+                        if (i > 1) {
+                            newPdf.addPage();
+                        }
+                        
+                        // Set page size to match image aspect ratio
+                        const pageWidth = newPdf.internal.pageSize.getWidth();
+                        const pageHeight = newPdf.internal.pageSize.getHeight();
+                        const imgWidth = viewport.width;
+                        const imgHeight = viewport.height;
+                        const ratio = imgWidth / imgHeight;
+
+                        let pdfImgWidth = pageWidth;
+                        let pdfImgHeight = pdfImgWidth / ratio;
+                        
+                        if (pdfImgHeight > pageHeight) {
+                            pdfImgHeight = pageHeight;
+                            pdfImgWidth = pdfImgHeight * ratio;
+                        }
+
+                        const x = (pageWidth - pdfImgWidth) / 2;
+                        const y = (pageHeight - pdfImgHeight) / 2;
+                        
+                        newPdf.addImage(imgData, 'JPEG', x, y, pdfImgWidth, pdfImgHeight);
+                        statusEl.textContent = `Processing page ${i} of ${pdfDoc.numPages}...`;
+                    }
+                    
+                    const pdfBlob = newPdf.output('blob');
+                    const compressedSize = pdfBlob.size;
+                    const originalSize = pdfFile.size;
+                    const reduction = (((originalSize - compressedSize) / originalSize) * 100).toFixed(2);
+                    
+                    resultText.innerHTML = `Original Size: <b>${formatBytes(originalSize)}</b><br>
+                                          New Size: <b>${formatBytes(compressedSize)}</b><br>
+                                          Reduction: <b>${reduction}%</b>`;
+                    
+                    const url = URL.createObjectURL(pdfBlob);
+                    downloadButton.href = url;
+                    downloadButton.download = `compressed-${pdfFile.name}`;
+
+                    resultArea.style.display = 'block';
+                    statusEl.textContent = 'Compression complete!';
+                };
+
+                fileReader.readAsArrayBuffer(pdfFile);
+
+            } catch (error) {
+                console.error('Error during compression:', error);
+                statusEl.textContent = 'An error occurred. The PDF might be corrupted or protected.';
+            } finally {
+                compressButton.disabled = false;
+            }
+        });
+
+        // Helper function to format bytes into KB, MB, etc.
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>
