@@ -81,6 +81,10 @@
             padding: 25px;
             text-align: center;
             transition: transform 0.2s, box-shadow 0.2s;
+            
+            /* --- CHANGE 1: Turn the card into a flex container --- */
+            display: flex;
+            flex-direction: column; 
         }
         .tool-card:hover {
             transform: translateY(-5px);
@@ -95,6 +99,7 @@
             color: #555;
             line-height: 1.5;
             min-height: 70px;
+            flex-grow: 1; /* Allows the text block to grow, pushing the button down */
         }
         .tool-card a {
             display: inline-block;
@@ -105,6 +110,9 @@
             border-radius: 5px;
             font-weight: bold;
             transition: background-color 0.2s;
+
+            /* --- CHANGE 2: (Alternative/Simpler) You can use margin-top: auto; instead of flex-grow on the <p> --- */
+            /* margin-top: auto; */
         }
         .tool-card a:hover {
             background-color: #0056b3;
