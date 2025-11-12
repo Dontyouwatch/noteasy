@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Image to Existing PDF</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            color: #0056b3;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        input[type="file"], input[type="text"], button {
+            display: block;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: calc(100% - 22px);
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            width: auto;
+            padding: 10px 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .file-input-wrapper label {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .file-input-wrapper label:hover {
+            background-color: #0056b3;
+        }
+        #outputMessage {
+            margin-top: 20px;
+            color: green;
+        }
+        /* Basic styling for demonstration, no headers/footers in the PDF */
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Add Image to Existing PDF</h1>
+
+        <div class="file-input-wrapper">
+            <label for="pdf-input">Select Existing PDF</label>
+            <input type="file" id="pdf-input" accept="application/pdf">
+        </div>
+
+        <div class="file-input-wrapper">
+            <label for="image-input">Select Image to Add</label>
+            <input type="file" id="image-input" accept="image/*">
+        </div>
+
+        <input type="number" id="page-number" value="1" min="1" placeholder="Page Number to add image">
+
+        <input type="text" id="pdf-name" placeholder="Enter output PDF name (e.g., my-updated-doc)">
+
+        <button id="add-image-button" disabled>Add Image to PDF</button>
+
+        <p id="outputMessage"></p>
+    </div>
+
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script>
+        const { PDFDocument, rgb, StandardFonts } = PDFLib;
+
+        const pdfInput = document.getElementById('pdf-input');
+        const imageInput = document.getElementById('image-input');
+        const pageNumberInput = document.getElementById('page-number');
+        const pdfNameInput = document.getElementById('pdf-name');
+        const addImageButton = document.getElementById('add-image-button');
+        const outputMessage = document.getElementById('outputMessage');
+
+        let selectedPdfFile = null;
+        let selectedImageFile = null;
+
+        // Enable/disable button based on file selections
+        const updateButtonState = () => {
+            addImageButton.disabled = !(selectedPdfFile && selectedImageFile);
+        };
+
+        pdfInput.addEventListener('change', (e) => {
+            selectedPdfFile = e.target.files[0];
+            updateButtonState();
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            selectedImageFile = e.target.files[0];
+            updateButtonState();
+        });
+
+        addImageButton.addEventListener('click', async () => {
+            if (!selectedPdfFile || !selectedImageFile) {
+                outputMessage.textContent = 'Please select both a PDF and an image.';
+                outputMessage.style.color = 'red';
+                return;
+            }
+
+            outputMessage.textContent = 'Processing...';
+            outputMessage.style.color = 'orange';
+
+            try {
+                // Read the existing PDF
+                const existingPdfBytes = await selectedPdfFile.arrayBuffer();
+                const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+                // Read the image
+                const imageBytes = await selectedImageFile.arrayBuffer();
+                let pdfImage;
+                const imageType = selectedImageFile.type;
+
+                if (imageType === 'image/jpeg') {
+                    pdfImage = await pdfDoc.embedJpg(imageBytes);
+                } else if (imageType === 'image/png') {
+                    pdfImage = await pdfDoc.embedPng(imageBytes);
+                } else {
+                    throw new Error('Unsupported image format. Please use JPEG or PNG.');
+                }
+
+                const pageNumber = parseInt(pageNumberInput.value) - 1; // pdf-lib is 0-indexed
+                const pages = pdfDoc.getPages();
+
+                if (pageNumber < 0 || pageNumber >= pages.length) {
+                    throw new Error(`Invalid page number. This PDF has ${pages.length} pages.`);
+                }
+
+                const page = pages[pageNumber];
+
+                // Get page dimensions
+                const { width, height } = page.getSize();
+
+                // Calculate image dimensions to fit within the page, maintaining aspect ratio
+                const imgWidth = pdfImage.width;
+                const imgHeight = pdfImage.height;
+
+                let scale = 1;
+                if (imgWidth > width || imgHeight > height) {
+                    scale = Math.min(width / imgWidth, height / imgHeight);
+                }
+
+                const finalImgWidth = imgWidth * scale * 0.5; // Example: make image 50% of the calculated scaled size
+                const finalImgHeight = imgHeight * scale * 0.5;
+
+                // Position the image (e.g., center it, or top-left at 50, 50)
+                // For this example, let's place it at the top-left, with some padding
+                const x = 50;
+                const y = height - finalImgHeight - 50; // Place 50 units from top
+
+                page.drawImage(pdfImage, {
+                    x,
+                    y,
+                    width: finalImgWidth,
+                    height: finalImgHeight,
+                });
+
+                // Save the modified PDF
+                const modifiedPdfBytes = await pdfDoc.save();
+                const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+
+                const customPdfName = pdfNameInput.value.trim() || 'updated-document';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${customPdfName}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+                outputMessage.textContent = `Image successfully added to PDF and downloaded as ${customPdfName}.pdf!`;
+                outputMessage.style.color = 'green';
+
+            } catch (error) {
+                console.error("Error adding image to PDF:", error);
+                outputMessage.textContent = `Error: ${error.message}`;
+                outputMessage.style.color = 'red';
+            }
+        });
+    </script>
+</body>
+</html>
