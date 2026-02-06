@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Page Splitter & Extractor</title>
+    
+    <!-- PDF.js (For viewing) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- PDF-Lib (For editing/saving PDFs) -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <!-- JSZip (For bulk download) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- FileSaver (For saving files) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --primary-dark: #357abd;
+            --bg: #f5f7fa;
+            --surface: #ffffff;
+            --text: #333;
+            --border: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 { margin: 0 0 10px 0; color: var(--primary); }
+        p { color: #666; margin: 0; }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            background: #fafafa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #f0f7ff;
+        }
+
+        input[type="file"] { display: none; }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover { background-color: var(--primary-dark); }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        .btn-outline:hover { background-color: var(--primary); color: white; }
+
+        /* Toolbar */
+        .toolbar {
+            display: none; /* Hidden until file loaded */
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #eee;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .stats { font-weight: bold; }
+
+        /* Grid Layout */
+        .page-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        /* Page Card */
+        .page-card {
+            background: white;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-card.selected {
+            border-color: var(--primary);
+            background-color: #f0f7ff;
+        }
+
+        .page-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+
+        .canvas-wrapper {
+            width: 100%;
+            height: 250px;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .card-footer {
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+
+        .page-num { font-weight: bold; color: #555; }
+
+        .checkbox-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+
+        .custom-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .single-download-btn {
+            background: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #555;
+        }
+        .single-download-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        #status {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>PDF Page Splitter</h1>
+        <p>Upload a PDF, view pages, and download them independently.</p>
+    </header>
+
+    <!-- Upload Section -->
+    <div class="upload-area" id="drop-zone">
+        <label for="file-input" class="btn">Select PDF File</label>
+        <input type="file" id="file-input" accept="application/pdf">
+        <p style="margin-top: 10px;">or drag and drop file here</p>
+    </div>
+
+    <div id="status"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar" id="toolbar">
+        <div class="stats">
+            <span id="page-count">0</span> pages | <span id="selected-count">0</span> selected
+        </div>
+        <div class="actions">
+            <button class="btn btn-outline" id="select-all-btn">Select All</button>
+            <button class="btn" id="download-selected-btn" disabled>Download Selected (ZIP)</button>
+        </div>
+    </div>
+
+    <!-- Grid Container -->
+    <div class="page-grid" id="grid"></div>
+</div>
+
+<script>
+    // --- Configuration ---
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const { PDFDocument } = PDFLib;
+
+    // --- DOM Elements ---
+    const fileInput = document.getElementById('file-input');
+    const dropZone = document.getElementById('drop-zone');
+    const grid = document.getElementById('grid');
+    const statusDiv = document.getElementById('status');
+    const toolbar = document.getElementById('toolbar');
+    const pageCountSpan = document.getElementById('page-count');
+    const selectedCountSpan = document.getElementById('selected-count');
+    const downloadSelectedBtn = document.getElementById('download-selected-btn');
+    const selectAllBtn = document.getElementById('select-all-btn');
+
+    // --- State ---
+    let currentPdfBytes = null; // Raw ArrayBuffer of the uploaded file
+    let currentFileName = "document";
+    let totalPages = 0;
+    let selectedPages = new Set(); // Stores 0-based page indices
+
+    // --- Event Listeners ---
+    fileInput.addEventListener('change', handleFile);
+    
+    // Drag and Drop
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#4a90e2'; });
+    dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.borderColor = '#ccc'; });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#ccc';
+        if(e.dataTransfer.files[0]) handleFile({ target: { files: e.dataTransfer.files } });
+    });
+
+    selectAllBtn.addEventListener('click', toggleSelectAll);
+    downloadSelectedBtn.addEventListener('click', downloadSelectedAsZip);
+
+    // --- Main Logic ---
+
+    async function handleFile(e) {
+        const file = e.target.files[0];
+        if (!file || file.type !== 'application/pdf') {
+            statusDiv.textContent = "Please upload a valid PDF file.";
+            return;
+        }
+
+        // Reset UI
+        grid.innerHTML = '';
+        selectedPages.clear();
+        updateSelectionUI();
+        toolbar.style.display = 'none';
+        currentFileName = file.name.replace('.pdf', '');
+        statusDiv.textContent = "Loading PDF...";
+
+        try {
+            // Read file as ArrayBuffer
+            currentPdfBytes = await file.arrayBuffer();
+            
+            // Load into PDF.js for Viewing
+            const pdfViewerDoc = await pdfjsLib.getDocument(currentPdfBytes.slice(0)).promise; // Slice to clone
+            totalPages = pdfViewerDoc.numPages;
+            
+            pageCountSpan.textContent = totalPages;
+            toolbar.style.display = 'flex';
+            statusDiv.textContent = `Rendering ${totalPages} pages...`;
+
+            // Render thumbnails
+            for (let i = 1; i <= totalPages; i++) {
+                await renderPageThumbnail(pdfViewerDoc, i);
+            }
+
+            statusDiv.textContent = "";
+
+        } catch (error) {
+            console.error(error);
+            statusDiv.textContent = "Error processing PDF: " + error.message;
+        }
+    }
+
+    async function renderPageThumbnail(pdfDoc, pageNum) {
+        const page = await pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 0.5 }); // Low scale for thumbnail
+
+        // Create UI Elements
+        const card = document.createElement('div');
+        card.className = 'page-card';
+        card.dataset.pageIndex = pageNum - 1; // 0-based index for logic
+
+        // 1. Checkbox
+        const checkboxWrapper = document.createElement('div');
+        checkboxWrapper.className = 'checkbox-overlay';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'custom-checkbox';
+        checkbox.addEventListener('change', (e) => togglePageSelection(pageNum - 1, e.target.checked));
+        checkboxWrapper.appendChild(checkbox);
+
+        // 2. Canvas (Image)
+        const canvasWrapper = document.createElement('div');
+        canvasWrapper.className = 'canvas-wrapper';
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        // Render PDF page to canvas
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        
+        // Click canvas to toggle checkbox
+        canvasWrapper.addEventListener('click', () => {
+            checkbox.checked = !checkbox.checked;
+            togglePageSelection(pageNum - 1, checkbox.checked);
+        });
+
+        canvasWrapper.appendChild(canvas);
+
+        // 3. Footer (Details & Download Button)
+        const footer = document.createElement('div');
+        footer.className = 'card-footer';
+        
+        const pageLabel = document.createElement('span');
+        pageLabel.className = 'page-num';
+        pageLabel.textContent = `Page ${pageNum}`;
+
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'single-download-btn';
+        dlBtn.textContent = 'Download PDF';
+        dlBtn.title = "Download this page as a PDF file";
+        dlBtn.onclick = () => downloadSinglePage(pageNum - 1);
+
+        footer.appendChild(pageLabel);
+        footer.appendChild(dlBtn);
+
+        // Assemble
+        card.appendChild(checkboxWrapper);
+        card.appendChild(canvasWrapper);
+        card.appendChild(footer);
+        grid.appendChild(card);
+    }
+
+    // --- Selection Logic ---
+
+    function togglePageSelection(index, isSelected) {
+        if (isSelected) {
+            selectedPages.add(index);
+        } else {
+            selectedPages.delete(index);
+        }
+        
+        // Update visual state of specific card
+        const card = grid.children[index];
+        const checkbox = card.querySelector('input[type="checkbox"]');
+        
+        if (isSelected) {
+            card.classList.add('selected');
+            checkbox.checked = true;
+        } else {
+            card.classList.remove('selected');
+            checkbox.checked = false;
+        }
+
+        updateSelectionUI();
+    }
+
+    function toggleSelectAll() {
+        const allSelected = selectedPages.size === totalPages;
+        
+        if (allSelected) {
+            // Deselect all
+            for(let i=0; i<totalPages; i++) togglePageSelection(i, false);
+        } else {
+            // Select all
+            for(let i=0; i<totalPages; i++) togglePageSelection(i, true);
+        }
+    }
+
+    function updateSelectionUI() {
+        selectedCountSpan.textContent = selectedPages.size;
+        downloadSelectedBtn.disabled = selectedPages.size === 0;
+        
+        if (selectedPages.size === totalPages && totalPages > 0) {
+            selectAllBtn.textContent = "Deselect All";
+        } else {
+            selectAllBtn.textContent = "Select All";
+        }
+    }
+
+    // --- Download Logic (using pdf-lib) ---
+
+    // 1. Download a single page immediately
+    async function downloadSinglePage(pageIndex) {
+        try {
+            statusDiv.textContent = "Preparing download...";
+            
+            // Load source PDF
+            const pdfDoc = await PDFDocument.load(currentPdfBytes);
+            
+            // Create new PDF
+            const newPdf = await PDFDocument.create();
+            
+            // Copy the specific page
+            const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageIndex]);
+            newPdf.addPage(copiedPage);
+            
+            // Save
+            const pdfBytes = await newPdf.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            
+            saveAs(blob, `${currentFileName}_page_${pageIndex + 1}.pdf`);
+            statusDiv.textContent = "";
+        } catch (err) {
+            alert("Error downloading page: " + err.message);
+        }
+    }
+
+    // 2. Download multiple pages as ZIP
+    async function downloadSelectedAsZip() {
+        if (selectedPages.size === 0) return;
+
+        statusDiv.textContent = "Generating ZIP file... This may take a moment.";
+        
+        try {
+            const zip = new JSZip();
+            const pdfDoc = await PDFDocument.load(currentPdfBytes);
+            const sortedIndices = Array.from(selectedPages).sort((a, b) => a - b);
+
+            for (const index of sortedIndices) {
+                // Create a new PDF for each selected page
+                const newPdf = await PDFDocument.create();
+                const [copiedPage] = await newPdf.copyPages(pdfDoc, [index]);
+                newPdf.addPage(copiedPage);
+                
+                const pdfBytes = await newPdf.save();
+                zip.file(`${currentFileName}_page_${index + 1}.pdf`, pdfBytes);
+            }
+
+            // Generate ZIP
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, `${currentFileName}_selected_pages.zip`);
+            statusDiv.textContent = "Download started!";
+        } catch (err) {
+            console.error(err);
+            statusDiv.textContent = "Error creating ZIP: " + err.message;
+        }
+    }
+
+</script>
+
+</body>
+</html>
